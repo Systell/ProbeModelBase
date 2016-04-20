@@ -1,0 +1,12 @@
+class Page
+{
+	public var scroll:Int = 1;
+	public var mainText:String;
+	public var titleText:String;
+	
+	public function new(titleText:String, mainText:String)
+	{
+		this.mainText = mainText;
+		this.titleText = titleText;
+	}
+}

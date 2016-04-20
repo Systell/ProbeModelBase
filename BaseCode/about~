@@ -1,0 +1,7 @@
+This is to serve as a base for all projects of exposeModel. Goals of this are to provide:
+1. Easy means of putting text to the screen
+2. Dividing the text into sections
+3. navigating the article
+4. integrating the models into the article
+5. Some functionality for non-static text (e.g. displaying different text dpeending on differents states of a model)
+6. 

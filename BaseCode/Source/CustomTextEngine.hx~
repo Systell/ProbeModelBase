@@ -1,0 +1,457 @@
+package;
+
+import haxe.Timer;
+import haxe.Utf8;
+import lime.graphics.cairo.CairoFontFace;
+import lime.graphics.opengl.GLTexture;
+import lime.system.System;
+import lime.text.TextLayout;
+import openfl.display.Tilesheet;
+import openfl.events.Event;
+import openfl.events.FocusEvent;
+import openfl.events.MouseEvent;
+import openfl.geom.Point;
+import openfl.geom.Rectangle;
+import openfl.text.AntiAliasType;
+import openfl.text.Font;
+import openfl.text.GridFitType;
+import openfl.text.TextField;
+import openfl.text.TextFieldAutoSize;
+import openfl.text.TextFieldType;
+import openfl.text.TextFormat;
+import openfl.text.TextFormatAlign;
+
+#if (js && html5)
+import js.html.CanvasElement;
+import js.html.CanvasRenderingContext2D;
+import js.html.CSSStyleDeclaration;
+import js.html.InputElement;
+import js.html.KeyboardEvent in HTMLKeyboardEvent;
+import js.Browser;
+#end
+
+#if sys
+import haxe.io.Path;
+#end
+
+import openfl._internal.text.TextEngine;
+
+@:access(openfl.text.Font)
+@:access(openfl.text.TextField)
+@:access(openfl.text.TextFormat)
+
+
+class CustomTextEngine extends TextEngine{
+	
+	#if (js && html5)
+	private static var __canvas:CanvasElement;
+	private static var __context:CanvasRenderingContext2D;
+	#end
+	
+	override function getLayoutGroups ():Void {
+		
+		layoutGroups.splice (0, layoutGroups.length);
+		
+		var rangeIndex = -1;
+		var formatRange:TextFormatRange = null;
+		var font = null;
+		
+		var currentFormat = TextField.__defaultTextFormat.clone ();
+		
+		var leading = 0;
+		var ascent = 0.0;
+		var descent = 0.0;
+		
+		var layoutGroup, advances;
+		var widthValue, heightValue = 0.0;
+		
+		var spaceWidth = 0.0;
+		var previousSpaceIndex = 0;
+		var spaceIndex = text.indexOf (" ");
+		var breakIndex = text.indexOf ("\n");
+		
+		var marginRight = 0.0;
+		var offsetX = 2.0;
+		var offsetY = 2.0;
+		var textIndex = 0;
+		var lineIndex = 0;
+		var lineFormat = null;
+		
+		inline function getAdvances (text:String, startIndex:Int, endIndex:Int):Array<Float> {
+			
+			// TODO: optimize
+			
+			var advances = [];
+			
+			#if (js && html5)
+			
+			for (i in startIndex...endIndex) {
+				
+				advances.push (__context.measureText (text.substring (startIndex,i+1)).width-__context.measureText (text.substring (startIndex,i)).width);
+				
+			}
+			
+			#else
+			
+			if (__textLayout == null) {
+				
+				__textLayout = new TextLayout ();
+				
+			}
+			
+			var width = 0.0;
+			
+			__textLayout.text = null;
+			__textLayout.font = font;
+			
+			if (formatRange.format.size != null) {
+				
+				__textLayout.size = formatRange.format.size;
+				
+			}
+			
+			__textLayout.text = text.substring (startIndex, endIndex);
+			
+			for (position in __textLayout.positions) {
+				
+				advances.push (position.advance.x);
+				
+			}
+			
+			#end
+			
+			return advances;
+			
+		}
+		
+		inline function getAdvancesWidth (advances:Array<Float>):Float {
+			
+			var width = 0.0;
+			
+			for (advance in advances) {
+				
+				width += advance;
+				
+			}
+			
+			return width;
+			
+		}
+		
+		inline function getTextWidth (text:String):Float {
+			
+			#if (js && html5)
+			
+			return __context.measureText (text).width;
+			
+			#else
+			
+			if (__textLayout == null) {
+				
+				__textLayout = new TextLayout ();
+				
+			}
+			
+			var width = 0.0;
+			
+			__textLayout.text = null;
+			__textLayout.font = font;
+			
+			if (formatRange.format.size != null) {
+				
+				__textLayout.size = formatRange.format.size;
+				
+			}
+			
+			__textLayout.text = text;
+			
+			for (position in __textLayout.positions) {
+				
+				width += position.advance.x;
+				
+			}
+			
+			return width;
+			
+			#end
+			
+		}
+		
+		inline function nextFormatRange ():Void {
+			
+			if (rangeIndex < textFormatRanges.length - 1) {
+				
+				rangeIndex++;
+				formatRange = textFormatRanges[rangeIndex];
+				currentFormat.__merge (formatRange.format);
+				
+				#if (js && html5)
+				
+				__context.font = getFont (currentFormat);
+				
+				ascent = currentFormat.size;
+				descent = currentFormat.size * 0.185;
+				leading = currentFormat.leading;
+				
+				heightValue = ascent + descent + leading;
+				
+				#elseif (cpp || neko || nodejs)
+				
+				font = getFontInstance (currentFormat);
+				
+				if (font != null) {
+					
+					ascent = (font.ascender / font.unitsPerEM) * currentFormat.size;
+					descent = Math.abs ((font.descender / font.unitsPerEM) * currentFormat.size);
+					leading = currentFormat.leading;
+					
+					heightValue = ascent + descent + leading;
+					
+				} else {
+					
+					ascent = currentFormat.size;
+					descent = currentFormat.size * 0.185;
+					leading = currentFormat.leading;
+					
+					heightValue = ascent + descent + leading;
+					
+				}
+				
+				#end
+				
+				if (spaceIndex > -1) {
+					
+					spaceWidth = getTextWidth (" ");
+					
+				}
+				
+			}
+			
+		}
+		
+		nextFormatRange ();
+		
+		lineFormat = formatRange.format;
+		var wrap;
+		
+		while (textIndex < text.length) {
+			
+			if ((breakIndex > -1) && (spaceIndex == -1 || breakIndex < spaceIndex) && (formatRange.end >= breakIndex)) {
+				
+				layoutGroup = new TextLayoutGroup (formatRange.format, textIndex, breakIndex);
+				layoutGroup.advances = getAdvances (text, textIndex, breakIndex);
+				layoutGroup.offsetX = offsetX;
+				layoutGroup.ascent = ascent;
+				layoutGroup.descent = descent;
+				layoutGroup.leading = leading;
+				layoutGroup.lineIndex = lineIndex;
+				layoutGroup.offsetY = offsetY;
+				layoutGroup.width = getAdvancesWidth (layoutGroup.advances);
+				layoutGroup.height = heightValue;
+				layoutGroups.push (layoutGroup);
+				
+				offsetY += heightValue;
+				offsetX = 2;
+				
+				if (wordWrap && (layoutGroup.offsetX + layoutGroup.width > width - 2)) {
+					
+					layoutGroup.offsetY = offsetY;
+					layoutGroup.offsetX = offsetX;
+					
+					offsetY += heightValue;
+					lineIndex++;
+					
+				}
+				
+				textIndex = breakIndex + 1;
+				breakIndex = text.indexOf ("\n", textIndex);
+				lineIndex++;
+				
+				if (formatRange.end == breakIndex) {
+					
+					nextFormatRange ();
+					lineFormat = formatRange.format;
+					
+				}
+				
+			} else if (formatRange.end >= spaceIndex && spaceIndex > -1) {
+				
+				layoutGroup = null;
+				wrap = false;
+				
+				while (true) {
+					
+					if (spaceIndex == -1) spaceIndex = formatRange.end;
+					
+					advances = getAdvances (text, textIndex, spaceIndex);
+					widthValue = getAdvancesWidth (advances);
+					
+					if (wordWrap) {
+						
+						if (offsetX + widthValue > width - 2) {
+							
+							wrap = true;
+							
+						}
+						
+					}
+					
+					if (wrap) {
+						
+						offsetY += heightValue;
+						
+						var i = layoutGroups.length - 1;
+						var offsetCount = 0;
+						
+						while (true) {
+							
+							layoutGroup = layoutGroups[i];
+							
+							if (i > 0 && layoutGroup.startIndex > previousSpaceIndex) {
+								
+								offsetCount++;
+								
+							} else {
+								
+								break;
+								
+							}
+							
+							i--;
+							
+						}
+						
+						lineIndex++;
+						
+						offsetX = 2;
+						
+						if (offsetCount > 0) {
+							
+							var bumpX = layoutGroups[layoutGroups.length - offsetCount].offsetX;
+							
+							for (i in (layoutGroups.length - offsetCount)...layoutGroups.length) {
+								
+								layoutGroup = layoutGroups[i];
+								layoutGroup.offsetX -= bumpX;
+								layoutGroup.offsetY = offsetY;
+								layoutGroup.lineIndex = lineIndex;
+								offsetX += layoutGroup.width;
+								
+							}
+							
+						}
+						
+						layoutGroup = new TextLayoutGroup (formatRange.format, textIndex, spaceIndex);
+						layoutGroup.advances = advances;
+						layoutGroup.offsetX = offsetX;
+						layoutGroup.ascent = ascent;
+						layoutGroup.descent = descent;
+						layoutGroup.leading = leading;
+						layoutGroup.lineIndex = lineIndex;
+						layoutGroup.offsetY = offsetY;
+						layoutGroup.width = widthValue;
+						layoutGroup.height = heightValue;
+						layoutGroups.push (layoutGroup);
+						
+						offsetX = widthValue + spaceWidth;
+						marginRight = spaceWidth;
+						
+						wrap = false;
+						
+					} else {
+						
+						if (layoutGroup != null && textIndex == spaceIndex) {
+							
+							if (formatRange.format.align != JUSTIFY) {
+								
+								layoutGroup.endIndex = spaceIndex;
+								
+							}
+							
+							layoutGroup.advances.push (spaceWidth);
+							marginRight += spaceWidth;
+							
+						} else if (layoutGroup == null || lineFormat.align == JUSTIFY) {
+							
+							layoutGroup = new TextLayoutGroup (formatRange.format, textIndex, spaceIndex);
+							layoutGroup.advances = advances;
+							layoutGroup.offsetX = offsetX;
+							layoutGroup.ascent = ascent;
+							layoutGroup.descent = descent;
+							layoutGroup.leading = leading;
+							layoutGroup.lineIndex = lineIndex;
+							layoutGroup.offsetY = offsetY;
+							layoutGroup.width = widthValue;
+							layoutGroup.height = heightValue;
+							layoutGroups.push (layoutGroup);
+							
+							layoutGroup.advances.push (spaceWidth);
+							marginRight = spaceWidth;
+							
+						} else {
+							
+							layoutGroup.endIndex = spaceIndex;
+							layoutGroup.advances = layoutGroup.advances.concat (advances);
+							layoutGroup.width += marginRight + widthValue;
+							
+							layoutGroup.advances.push (spaceWidth);
+							marginRight = spaceWidth;
+							
+						}
+						
+						offsetX += widthValue + spaceWidth;
+						
+					}
+					
+					textIndex = spaceIndex + 1;
+					
+					previousSpaceIndex = spaceIndex;
+					spaceIndex = text.indexOf (" ", previousSpaceIndex + 1);
+					
+					if (formatRange.end <= previousSpaceIndex) {
+						
+						layoutGroup = null;
+						nextFormatRange ();
+						
+					}
+					
+					if ((spaceIndex > breakIndex && breakIndex > -1) || textIndex > text.length || spaceIndex > formatRange.end || (spaceIndex == -1 && breakIndex > -1)) {
+						
+						break;
+						
+					}
+					
+				}
+				
+			} else {
+				
+				if (textIndex >= formatRange.end) {
+					
+					break;
+					
+				}
+				
+				layoutGroup = new TextLayoutGroup (formatRange.format, textIndex, formatRange.end);
+				layoutGroup.advances = getAdvances (text, textIndex, formatRange.end);
+				layoutGroup.offsetX = offsetX;
+				layoutGroup.ascent = ascent;
+				layoutGroup.descent = descent;
+				layoutGroup.leading = leading;
+				layoutGroup.lineIndex = lineIndex;
+				layoutGroup.offsetY = offsetY;
+				layoutGroup.width = getAdvancesWidth (layoutGroup.advances);
+				layoutGroup.height = heightValue;
+				layoutGroups.push (layoutGroup);
+				
+				offsetX += layoutGroup.width;
+				
+				textIndex = formatRange.end;
+				
+				nextFormatRange ();
+				
+			}
+			
+		}
+		
+	}
+}

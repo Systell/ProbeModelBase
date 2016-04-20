@@ -1,0 +1,90 @@
+Mandatory:
+(UI stuff:)
+-Add scroll bar:
+ DONE-have a create graphics that draws a rectangle, two triangles, and a line that goes a little less than the distance between the triangle
+ DONE-make the triangles a simple button that's click function has them move the text delta up/down one line
+ DONE-make the rectangle draggable within the top/bottom and have the percent of the top of the rectangle in comparison to the [length of the line - the height of the rectangle] be the percent of the scrollV/(maxScrollV)
+DONE-Add text expander/contracter on bottom (for now, have it expand to bottom and contract to where dummy variable says), optional: making sprite and text animate
+DONE-Integrate good positioning for scroll bar/text
+DONE-Make scroll bar dynamically adjust to text expander/contracter and include this bit when using the resize function.
+DONE-Implement back end for multiple pages of text
+DONE-Implement the animation for next/prev page filling when going to next page (plus going to next/prev page when filled)
+DONE-Impelement arrow key stuff
+DONE-Adjust position of next/prev page icons for the big screen
+DONE-make smaller next/prev page icons for the small screen/put in place
+DONE-Implement title text change for different sections/pages
+DONE-Implement calibration factored head bar size
+
+(Project integration:)
+DONE-Create a Simulation class that has a displayFrame function that is empty and a precompute function that takes in an integer variable called "priority" and another integer variable called "timeToCompute" and returns a boolean (representing whether the precomputing of that priority level is done), a function called "getStage" that takes in a stage variable REPLACED WITH INPUTTING STAGE AT NEW (and is otherwise empty), and two functions activate and deactivate (empty) that are ?empty? which will setup and remove all the user input events. Also has a variable called "maxPriority" (correspond to how many priority levels it has).
+DONE-Create a SimulationHandle class that is called every frame that displays the current simulation that is called on every page turn to activate the new simulation and deactive the old one.
+DONE-SimulationHandle does precompute stuff by having an array of all simulation's priority number, (which all extend the Simulation class) and feeding the precompute function time until it returns true unless its maxPriority number is exceeded, then adding one to priority, then going to the next simulation, looping back to the beginning.
+NOTNEEDED-include loadCheck for simulations
+
+DONE-Have setup program that copies base code into a base directory (non-edit version if edit version eventually implemented) and puts it as source for a new project of a given name
+DONE-Setup Bash file copies assets and creates an empty file called "text" in the "text" directory in the asset directory and opens the file in gedit
+DONE-In base code, have parser that takes text file, looks for a "{" characters that does not have "\" character before it (and if there is, deleting the "\"), and when it sees it, creates a new page in the back end whose title is the text between that "{" and the next "}" that doesn't have a "\" before it(if there isn't a "}" before the next "{" or it gets to end of file, title is "ERROR: NEED }" and text is blank and there are no more pages), and whose page text is the text after the "}" and before the next "{" or end of file.
+DONE-In base code have the parser now ignore every other "{}" pair (starting with the second pair)
+DONE-Have setup program create an empty directory called "Simulations" (that will be manually filled with simulation projects)
+DONE-Have sim creator program that starts a new sim directories in the Simulations directory that contain the appropriate files 
+DONE-Have compile program that stores the text in every other "{}" pair as an array of Simulation names, without including duplicates.
+DONE-In compile program, have it go through the directories in Simulations that have the name that matches the stored Simulation names, go into those directory's source directories, and see if any class names are the same as any other. If there are classes with either the same name, a name shared with one of simulation names (the name of the directory), or a name of base code's class, and that don't start with "Univ" and aren't "Main" ?nor "Simulation"?, display which and stop, otherwise:
+DONE-wipe all the files in the directory of the destination source, and copy all the files in the Simulation (duplicate univ files being fine) sources to there, replacing all files named "Main" with the simulation name
+DONE-Copy base code in that directory, go into "SimulationHandle" class in Base Code and add the initialization line stuff.
+DONE-compile, run
+DONE-figure out how the text expander/contracter stuff interacts with the simulation stuff.
+DONE-Assets for the simulations somewhere in here too
+DONE-Polish/stuff not thought of
+
+Wrap up:
+-Do a pass on all the colours/stylings
+-Polish stuff
+-Publishing
+
+Optional:
+*-Make navigation thing with the squares and stuff
+DONE-Grey out/remove next/prev arrow when at last/first page
+DONE-Make it so that user can click on any section of the scroll line and have scroll rect go there (and text scroll to there)
+*-Make the scroll bar invisible if no scrolling available (may not be a good idea, since this is a means for people to realize you can scroll to differnet pages, replacement idea: have scroll rect go to bottom/top when scrolling to next/prev page)
+*-Make the contract/expand button invisible if the height of the text and height of the simulation both fit on the screen.
+*-Make it so that the previous page button's excess scroll goes from left to right
+DONE-(MADE TRANSPARENT INSTEAD) Put small excess behind arrow
+DONE-Make compile.sh more legible
+DONE-Put a readme or comment for simulations that include the rules (can't have same classes that have same name unless it begins with "Univ" in which case they must be the same class, except Main.hx/Simulation.hx, and must use the default classes right)
+*-Have text expander only go as far as the text height, have sims adjust with this
+DONE-fix margin size (for thin mode and for transition between thin/non thin mode
+
+Super Optional:
+-have a "base code updated" bash file that goes into a project, changes the bae code in the base code folder to new base code.
+-Have editing mode that checks if text has been changed and updates accordingly
+-Fix openFL text stuff (selection, copy/pasting, sections being different styles)
+-Implement links to other sections/models/the internet
+-Make it so that editing mode lets you actually edit all the text
+-Make it so that integrating scripts don't force one to use different class names in the simulations
+-Make integration script stuff not OS specific
+-Make it so that user can specify text editor to use
+
+
+Super Duper Optional:
+-Make it so that editing mode lets you edit the aspects of or even the entire code of the simulations
+-Figure out autoscroll (click mouse wheel type scroll)
+
+
+
+TODO progress:
+31/31 mandatory
+7/10 optional
+0/8 super optional
+0/2 super duper optional
+0/3 wrap up
+
+
+---
+DONE Find out why the ui isn't i'ing on 5apps
+DONE Make the text size shrink on the graph labels
+DONE Figure out the expand/contract bugs
+Figure out the double click button thing.
+Make logo
+Post comments on reddit
+add all the source stuff to github
+Make the post

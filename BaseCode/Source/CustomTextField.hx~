@@ -1,0 +1,167 @@
+////TextField is a little broken, using this custom class as a hacky workaround.
+//package;
+//
+//import openfl.text.TextField;
+//import openfl.events.MouseEvent;
+//
+//class CustomTextField extends TextField
+//{
+//override function stage_onMouseMove (event:MouseEvent) {
+//		
+//if (stage == null) return;
+//		
+//if (__textEngine.selectable && __selectionIndex >= 0) {
+//			
+//__updateLayout ();
+//			
+//var position = __getPosition (mouseX, mouseY);
+//			
+//if (position != __caretIndex) {
+//				
+//__caretIndex = position;
+//__dirty = true;
+//				
+//}
+//			
+//}
+//		
+//}
+//	
+//override function stage_onMouseUp (event:MouseEvent):Void {
+//		
+//if (stage == null) return;
+//		
+//stage.removeEventListener (MouseEvent.MOUSE_MOVE, stage_onMouseMove);
+//stage.removeEventListener (MouseEvent.MOUSE_UP, stage_onMouseUp);
+//		
+//if (stage.focus == this) {
+//			
+//__getWorldTransform ();
+//__updateLayout ();
+//			
+//var px = __worldTransform.__transformInverseX (x, y);
+//var py = __worldTransform.__transformInverseY (x, y);
+//			
+//var upPos:Int = __getPosition (mouseX, mouseY);
+//var leftPos:Int;
+//var rightPos:Int;
+//			
+//leftPos = Std.int (Math.min (__selectionIndex, upPos));
+//rightPos = Std.int (Math.max (__selectionIndex, upPos));
+//			
+//__selectionIndex = leftPos;
+//__caretIndex = rightPos;
+//			
+//if (__inputEnabled) {
+//				
+//this_onFocusIn (null);
+//				
+//__stopCursorTimer ();
+//__startCursorTimer ();
+//				
+//}
+//			
+//}
+//		
+//}
+//	
+//override function this_onMouseDown (event:MouseEvent):Void {
+//		
+//if (!selectable) return;
+//		
+//__updateLayout ();
+//		
+//__caretIndex = __getPosition (mouseX, mouseY);
+//__selectionIndex = __caretIndex;
+//__dirty = true;
+//		
+//stage.addEventListener (MouseEvent.MOUSE_MOVE, stage_onMouseMove);
+//stage.addEventListener (MouseEvent.MOUSE_UP, stage_onMouseUp);
+//		
+//}
+//}
+
+
+//TextField is a little broken, using this custom class as a hacky workaround.
+package;
+
+import openfl.text.TextField;
+import openfl.text.TextFormat;
+import openfl._internal.renderer.cairo.CairoTextField;
+import openfl._internal.renderer.canvas.CanvasTextField;
+import openfl._internal.renderer.dom.DOMTextField;
+import openfl._internal.renderer.opengl.GLRenderer;
+import openfl._internal.renderer.RenderSession;
+
+class CustomTextField extends TextField
+{
+	public var __ranges:Array<Range> = [];
+	override function setTextFormat (format:TextFormat, beginIndex:Int = 0, endIndex:Int = 0):Void {
+		
+		if(!(beginIndex == 0 && endIndex == 0) && beginIndex <= endIndex){
+			
+			__ranges.push(new Range(0,10,format));
+			__ranges.push(new Range(11,9001,__textFormat));
+		}
+		else{
+			if (format.font != null) __textFormat.font = format.font;
+			if (format.size != null) __textFormat.size = format.size;
+			if (format.color != null) __textFormat.color = format.color;
+			if (format.bold != null) __textFormat.bold = format.bold;
+			if (format.italic != null) __textFormat.italic = format.italic;
+			if (format.underline != null) __textFormat.underline = format.underline;
+			if (format.url != null) __textFormat.url = format.url;
+			if (format.target != null) __textFormat.target = format.target;
+			if (format.align != null) __textFormat.align = format.align;
+			if (format.leftMargin != null) __textFormat.leftMargin = format.leftMargin;
+			if (format.rightMargin != null) __textFormat.rightMargin = format.rightMargin;
+			if (format.indent != null) __textFormat.indent = format.indent;
+			if (format.leading != null) __textFormat.leading = format.leading;
+			if (format.blockIndent != null) __textFormat.blockIndent = format.blockIndent;
+			if (format.bullet != null) __textFormat.bullet = format.bullet;
+			if (format.kerning != null) __textFormat.kerning = format.kerning;
+			if (format.letterSpacing != null) __textFormat.letterSpacing = format.letterSpacing;
+			if (format.tabStops != null) __textFormat.tabStops = format.tabStops;
+		}
+		__dirty = true;
+		__layoutDirty = true;
+		
+	}
+	
+	public override function __renderCanvas (renderSession:RenderSession):Void {
+		
+		CustomCanvasTextField.render (this, renderSession);
+		
+		if (__textEngine.antiAliasType == ADVANCED && __textEngine.gridFitType == PIXEL) {
+			
+			var smoothingEnabled = untyped (renderSession.context).imageSmoothingEnabled;
+			
+			if (smoothingEnabled) {
+				
+				untyped (renderSession.context).mozImageSmoothingEnabled = false;
+				//untyped (renderSession.context).webkitImageSmoothingEnabled = false;
+				untyped (renderSession.context).msImageSmoothingEnabled = false;
+				untyped (renderSession.context).imageSmoothingEnabled = false;
+				
+			}
+			
+			super.__renderCanvas (renderSession);
+			
+			if (smoothingEnabled) {
+				
+				untyped (renderSession.context).mozImageSmoothingEnabled = true;
+				//untyped (renderSession.context).webkitImageSmoothingEnabled = true;
+				untyped (renderSession.context).msImageSmoothingEnabled = true;
+				untyped (renderSession.context).imageSmoothingEnabled = true;
+				
+			}
+			
+		} else {
+			
+			super.__renderCanvas (renderSession);
+			
+		}
+		Main.textDisplay.titleField.text = "Yes!";
+	}
+	
+}

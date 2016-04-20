@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project>
+	
+	<meta title="BaseCode" package="com.sample.basecode" version="1.0.0" company="Company Name" />
+	<app main="Main" path="Export" file="BaseCode" />
+	
+	<?<window width="1200" />
+	<window height="1000" />?>
+
+
+	<source path="Source" />
+	
+	<haxelib name="openfl" />
+	
+	<?<assets path="Assets" rename="assets" />?>
+	<assets path="Assets/fonts" rename="fonts" include="*" />
+	<assets path="Assets/text" rename="text" include="*" />
+</project>

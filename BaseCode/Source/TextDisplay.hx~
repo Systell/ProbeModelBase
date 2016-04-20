@@ -1,0 +1,197 @@
+package;
+
+import openfl.display.*;
+import openfl.Assets;
+import openfl.text.*;
+import openfl.Lib;
+import openfl.events.*;
+import openfl.geom.Rectangle;
+
+class TextDisplay
+{
+	public var titleTextFont:Font;
+	public var titleTextFormat:TextFormat;
+	public var titleField:TextField;
+	
+	public var mainTextFont:Font;
+	public var mainTextFormat:TextFormat;
+	public var mainField:TextField;
+	
+	public var s:Stage;
+	
+	public var expanded:Bool;
+	
+	public var pageNumber:Int = 0;
+	public var pages:Array<Page> = [];
+	public var pageAmount:Int;
+	
+	public var thinMode:Bool = false;
+	public var thinCutoffRatio = .8;//the ratio of the text width and scroll bar to the width of the stage below which thinMode is activated
+	public var largeLength = 700;//this times the calibration factor is the ideal width of the text (designer consensus says there should be about ~70 max characters per line)
+	public var currentSimHeight:Float = 0;
+	public function new(inputStage:Stage)//creates and sets up the TextDisplay class
+	{
+		s = inputStage;
+		setupTitleText();
+		setupMainText();
+		Main.simHandle.newSimulation(pageNumber);
+	}
+	public function setupTitleText()
+	{
+		titleTextFont = Assets.getFont("fonts/Dense-Regular.otf");
+		titleTextFormat = new TextFormat(titleTextFont.fontName, 36, null, null, null, null, null, null, TextFormatAlign.CENTER);
+		titleField = new TextField();
+		titleField.defaultTextFormat = titleTextFormat;
+		titleField.autoSize = TextFieldAutoSize.NONE;
+		titleField.wordWrap = true;
+		titleField.width = s.stageWidth;
+		titleField.height = s.stageHeight;
+		titleField.y = .5*(Main.otherDisplay.headBar.height-titleField.textHeight);
+		titleField.x = 0;
+		titleField.textColor = 0xEEEEEE;
+		s.addChild(titleField);
+		var textField = new TextField();
+		
+		s.addChild(titleField);
+	}
+	public function setupMainText()
+	{
+		mainTextFont = Assets.getFont("fonts/OpenSans-Regular.ttf");
+		mainTextFormat = new TextFormat(mainTextFont.fontName, 18);
+		mainField = new TextField();
+		//mainField.htmlText = true;
+		mainField.setTextFormat(mainTextFormat);
+		mainField.setTextFormat(mainTextFormat,1,2);
+		mainField.wordWrap = true;
+		mainField.width = determineMainWidth();
+		mainField.height = s.stageHeight;//getContractHeight();
+		mainField.y = 100;
+		mainField.x = .5*(s.stageWidth-mainField.width);
+		mainField.textColor = 0x535353;
+		s.addChild(mainField);
+		
+	}
+	public function scrollText(e:MouseEvent)
+	{
+		mainField.scrollV -= e.delta;
+	}
+	public function determineMainWidth():Float
+	{
+		determineThinMode();
+		if(thinMode)
+		{
+			return s.stageWidth*thinCutoffRatio-2*UIElements.getScrollAndSpaceWidth();
+		}
+		else
+		{
+			return largeLength*Main.calibrationFactor;
+		}
+	}
+	public function determineThinMode()
+	{
+		if(largeLength*Main.calibrationFactor + 2*UIElements.getScrollTurnAndSpaceWidth() > s.stageWidth*thinCutoffRatio)
+		thinMode = true;
+		else
+		thinMode = false;
+	}
+	public function updateTitleObject()
+	{
+		titleField.text = pages[pageNumber].titleText;
+		titleField.y = .5*(Main.otherDisplay.headBar.height-titleField.textHeight);
+	}
+	public function updateMainTextObject()
+	{
+		mainField.text = pages[pageNumber].mainText;
+	}
+	public function resize()
+	{
+		Main.simHandle.sims[pageNumber].resize();
+		mainField.width = determineMainWidth();
+		mainField.x = .5*(s.stageWidth-mainField.width);
+		if(expanded)
+		mainField.height = getExpandHeight();
+		else
+		mainField.height = getContractHeight();
+		titleField.width = s.stageWidth;
+		fixScroll();
+	}
+	public function fixScroll()
+	{
+		if(mainField.scrollV>mainField.maxScrollV)
+		mainField.scrollV = mainField.maxScrollV;
+	}
+	public function goNextPage()
+	{
+		pages[pageNumber].scroll = mainField.scrollV;
+		pageNumber = Math.round(Math.min(pageNumber+1,pageAmount-1));
+		pageChange();
+	}
+	public function goPrevPage()
+	{
+		pages[pageNumber].scroll = mainField.scrollV;
+		pageNumber = Math.round(Math.max(pageNumber-1,0));
+		pageChange();
+	}
+	public function pageChange()
+	{
+		updateTitleObject();
+		updateMainTextObject();
+		resize();
+		mainField.scrollV = pages[pageNumber].scroll;
+		Main.simHandle.newSimulation(pageNumber);
+	}
+	public function goUpOneLine():Float
+	{
+		mainField.scrollV--;
+		return mainField.scrollV/mainField.maxScrollV;
+	}
+	public function goDownOneLine():Float
+	{
+		mainField.scrollV++;
+		return mainField.scrollV/mainField.maxScrollV;
+	}
+	public function setScroll(percent:Float)
+	{
+		mainField.scrollV = Math.round(percent*mainField.maxScrollV)+1;
+	}
+	public function getScrollPercentage()
+	{
+		if(mainField.maxScrollV>1)
+		return (mainField.scrollV-1)/(mainField.maxScrollV-1);
+		else
+		return 0;
+	}
+	public function contractText()
+	{
+		expanded = false;
+		mainField.height = getContractHeight();
+		Main.simHandle.sims[pageNumber].activate();
+		resize();
+	}
+	public function expandText()
+	{
+		expanded = true;
+		mainField.height = getExpandHeight();
+		Main.simHandle.sims[pageNumber].deactive();
+		resize();
+	}
+	public function getContractHeight():Float
+	{
+		currentSimHeight = Main.simHandle.sims[pageNumber].getSpriteHeight();
+		return (s.stageHeight-mainField.y-currentSimHeight*1.1-UIElements.textLengthBarHeight());
+	}
+	public function getExpandHeight():Float
+	{
+		return s.stageHeight-mainField.y-1.1*UIElements.getTextLengthUIHeight();
+	}
+	public function getMainFieldRect():Rectangle
+	{
+		return new Rectangle(mainField.x, mainField.y, mainField.width, mainField.height);
+	}
+	public function addPage(titleText, mainText)
+	{
+		pages.push(new Page(titleText, mainText, pages.length));
+		if(pages.length-1 == pageNumber)
+		resize();
+	}
+}

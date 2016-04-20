@@ -1,0 +1,5 @@
+echo "What is the technical name you would like to give this post?"
+read PROJECTNAME
+echo "The answer is: $PROJECTNAME"
+cd Posts
+openfl create project PROJECTNAME
